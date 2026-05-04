@@ -1,0 +1,40 @@
+[
+  {
+    "id": "RES-1777582216252",
+    "userId": "USR001",
+    "roomId": "2",
+    "guestName": "amine bikki",
+    "guestEmail": "tahlmsls@gmail.com",
+    "guestPhone": "256165156456",
+    "checkIn": "2026-04-30T00:00:00.000Z",
+    "checkOut": "2026-05-01T00:00:00.000Z",
+    "guests": 2,
+    "adults": 2,
+    "children": 0,
+    "totalPrice": 150,
+    "status": "CONFIRMED",
+    "paymentStatus": "PENDING",
+    "specialRequests": "",
+    "createdAt": "2026-04-30T20:50:16.252Z",
+    "updatedAt": "2026-04-30T20:50:16.252Z"
+  },
+  {
+    "id": "RES-1777583147254",
+    "userId": "USR001",
+    "roomId": "2",
+    "guestName": "firdous firdous",
+    "guestEmail": "firdous@mail.com",
+    "guestPhone": "3216160",
+    "checkIn": "2026-04-30T00:00:00.000Z",
+    "checkOut": "2026-05-01T00:00:00.000Z",
+    "guests": 2,
+    "adults": 2,
+    "children": 0,
+    "totalPrice": 150,
+    "status": "CONFIRMED",
+    "paymentStatus": "PENDING",
+    "specialRequests": "",
+    "createdAt": "2026-04-30T21:05:47.254Z",
+    "updatedAt": "2026-04-30T21:05:47.254Z"
+  }
+]

@@ -1,4 +1,4 @@
-import { Room } from '@/lib/data';
+
 
 // Base URL for the API
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -113,6 +113,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(reservationData),
       });
       if (!response.ok) {

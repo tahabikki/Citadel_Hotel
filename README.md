@@ -1,57 +1,54 @@
-# Citadel Hôtel - Luxury Hotel Website
+# Citadel Hôtel
 
-A modern, responsive hotel management website built with Next.js and Express.
+Citadel Hôtel is a Next.js frontend with a small backend utility layer for JSON data, upload storage, and future database migration.
 
-## Features
+## Architecture
 
-- **Frontend**: Next.js 16 with React 19, TypeScript, Tailwind CSS
-- **Backend**: Express.js with PostgreSQL and Prisma ORM
-- **Admin Panel**: Full Property Management System (PMS) with:
-  - Room Management
-  - Reservations
-  - Staff Management
-  - Housekeeping Tasks
-  - Inventory Management
-  - Media Library
-  - And more...
+- Frontend app: [frontend/](frontend)
+- Backend utilities and adapters: [backend/](backend)
+- Temporary JSON source of truth: [data/](data)
+- Shared contracts and models: [shared/](shared)
+- Dev-only upload target: [backend/uploads/](backend/uploads)
 
-- **Public Pages**:
-  - Home with Hero slider (video + images)
-  - Rooms with booking
-  - Gallery
-  - Dining
-  - Experience
-  - Contact with email form
-  - Login/Admin
+## Runtime Modes
+
+The app is controlled by environment variables:
+
+- `DB=json` uses the root JSON data store.
+- `DB=real` switches the data layer to the database adapter.
+- `STORAGE=local` writes uploads to `backend/uploads`.
+- `STORAGE=cloud` switches uploads to the cloud adapter.
+- `NEXT_PUBLIC_API_URL` overrides the frontend API base when needed.
+
+See [.env.example](.env.example) for the current defaults.
+
+## Request Flow
+
+1. Route handler parses the request.
+2. Route calls a service in `frontend/src/lib/services`.
+3. Service uses Prisma, the JSON DB adapter, or the storage selector.
+4. Adapter performs the actual read/write.
+
+## Add a New Module
+
+1. Define the domain shape in `shared/types` and, if needed, a validator in `shared/schemas`.
+2. Add the backend or frontend service that owns the business logic.
+3. Keep the route or UI layer thin and call the service instead of duplicating rules.
+4. Use the storage or DB adapter layer for persistence concerns.
 
 ## Getting Started
 
-### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### Backend
-```bash
-cd backend
-npm install
-# Configure .env with your database
-npx prisma migrate dev
-npm run dev
-```
+For the current migration setup, keep `DB=json` and `STORAGE=local` while developing.
 
-## Tech Stack
+## Constraints
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
-- Express.js
-- PostgreSQL
-- Prisma ORM
-
-## License
-
-MIT
+- No uploads in public storage paths.
+- No business logic in API routes.
+- No direct filesystem access in services.
+- No hardcoded storage paths in the frontend.

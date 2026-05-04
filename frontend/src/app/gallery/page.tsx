@@ -1,10 +1,11 @@
 'use client';
 
-import { Navbar } from "../../components/Navbar";
-import { Footer } from "../../components/Footer";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { images } from "../../lib/images";
+import { images } from "@/lib/images";
 import { ChevronLeft, ChevronRight, ZoomIn, X } from "lucide-react";
 
 const categories = [
@@ -35,11 +36,17 @@ export default function GalleryPage() {
       <main className="pt-20">
         <section className="py-16 bg-[var(--card)]">
           <div className="container-custom text-center">
-            <p className="text-sm tracking-[0.2em] uppercase text-[var(--secondary)] mb-4">Gallery</p>
-            <h1 className="font-display text-4xl md:text-5xl mb-6">Our Visual Story</h1>
-            <p className="text-[var(--secondary)] max-w-2xl mx-auto">
-              Explore the elegance of Citadel Hôtel through our collection of beautiful images.
-            </p>
+            <ScrollReveal animation="fade-right">
+              <p className="text-sm tracking-[0.2em] uppercase text-[var(--secondary)] mb-4">Gallery</p>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-left" delay={90}>
+              <h1 className="font-display text-4xl md:text-5xl mb-6">Our Visual Story</h1>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-right" delay={160}>
+              <p className="text-[var(--secondary)] max-w-2xl mx-auto">
+                Explore the elegance of Citadel Hôtel through our collection of beautiful images.
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
@@ -67,24 +74,28 @@ export default function GalleryPage() {
           <div className="container-custom">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredItems.map((item, index) => (
-                <div
+                <ScrollReveal
                   key={item.id}
-                  className={`relative aspect-square overflow-hidden rounded-lg cursor-pointer group ${
-                    index % 3 === 0 ? 'md:col-span-2 md:row-span-2' : ''
-                  }`}
-                  onClick={() => setSelectedImage(item.id)}
+                  animation={index % 2 === 0 ? 'fade-right' : 'fade-left'}
+                  delay={index * 45}
+                  className={index % 3 === 0 ? 'md:col-span-2 md:row-span-2' : ''}
                 >
-                  <Image
-                    src={item.src}
-                    alt={`Gallery ${item.id + 1}`}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                    <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div
+                    className="relative aspect-square overflow-hidden rounded-lg cursor-pointer group"
+                    onClick={() => setSelectedImage(index)}
+                  >
+                    <Image
+                      src={item.src}
+                      alt={`Gallery ${item.id + 1}`}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -99,7 +110,7 @@ export default function GalleryPage() {
               className="absolute top-4 right-4 p-2 text-white z-10 hover:text-[var(--primary)] transition-colors"
               onClick={() => setSelectedImage(null)}
             >
-              <span className="text-2xl">✕</span>
+              <X className="w-7 h-7" />
             </button>
             <button 
               className="absolute left-4 p-2 text-white"
@@ -112,7 +123,7 @@ export default function GalleryPage() {
             </button>
             <div className="relative w-full max-w-4xl h-[80vh]" onClick={(e) => e.stopPropagation()}>
               <Image
-                src={images[galleryItems.find(i => i.id === selectedImage)?.src || images[0]]}
+                src={filteredItems[selectedImage as number]?.src || images[0]}
                 alt="Gallery"
                 fill
                 className="object-contain"

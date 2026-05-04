@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { roomService } from '@/lib/services/roomService';
+import { reservationService } from '@/lib/services/reservationService';
+
+function toApiRoom(room: any) {
+  const images = Array.isArray(room.images) ? room.images : [];
+  return {
+    id: String(room.id),
+    roomNumber: String(room.roomNumber || room.id),
+    name: room.name,
+    type: room.type,
+    price: room.price,
+    maxGuests: room.maxGuests,
+    available: room.status === 'AVAILABLE',
+    imageUrl: images[0] || room.imageUrl || null,
+    amenities: room.amenities || [],
+    description: room.description || '',
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,45 +24,45 @@ export async function GET(request: NextRequest) {
     const checkIn = searchParams.get('checkIn');
     const checkOut = searchParams.get('checkOut');
     const guests = searchParams.get('guests');
-    const roomType = searchParams.get('type');
-
-    const where: any = { available: true };
-
-    if (roomType) {
-      where.type = roomType.toUpperCase();
+    const type = searchParams.get('type');
+    const includeAll = searchParams.get('includeAll');
+    const status = searchParams.get('status');
+    
+    let rooms = await roomService.getAll();
+    
+    if (includeAll !== 'true') {
+      rooms = rooms.filter(room => room.status === 'AVAILABLE');
     }
-
+    
+    if (status) {
+      rooms = rooms.filter(room => room.status === status);
+    }
+    
+    if (type) {
+      rooms = rooms.filter(room => room.type === type.toUpperCase());
+    }
+    
     if (guests) {
-      where.maxGuests = { gte: parseInt(guests) };
+      rooms = rooms.filter(room => room.maxGuests >= parseInt(guests));
     }
-
+    
     if (checkIn && checkOut) {
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-
-      const conflictingReservations = await prisma.reservation.findMany({
-        where: {
-          status: { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] },
-          OR: [
-            {
-              checkIn: { lte: checkOutDate },
-              checkOut: { gte: checkInDate }
-            }
-          ]
-        },
-        select: { roomId: true }
-      });
-
-      const occupiedRoomIds = conflictingReservations.map(r => r.roomId);
-      where.id = { notIn: occupiedRoomIds };
+      const reservations = await reservationService.getAll();
+      const conflictingRoomIds = reservations
+        .filter(r => {
+          if (r.status === 'CANCELLED') return false;
+          const resCheckIn = new Date(r.checkIn);
+          const resCheckOut = new Date(r.checkOut);
+          const reqCheckIn = new Date(checkIn);
+          const reqCheckOut = new Date(checkOut);
+          return (reqCheckIn < resCheckOut && reqCheckOut > resCheckIn);
+        })
+        .map(r => r.roomId);
+      
+      rooms = rooms.filter(room => !conflictingRoomIds.includes(room.id));
     }
-
-    const rooms = await prisma.room.findMany({
-      where,
-      orderBy: { price: 'asc' }
-    });
-
-    return NextResponse.json({ rooms });
+    
+    return NextResponse.json({ rooms: rooms.map(toApiRoom) });
   } catch (error) {
     console.error('Get rooms error:', error);
     return NextResponse.json(
@@ -58,134 +74,94 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Please login to make a reservation' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
-    const {
-      roomId,
-      checkIn,
-      checkOut,
-      guests,
-      adults,
-      children,
-      specialRequests
-    } = body;
-
-    if (!roomId || !checkIn || !checkOut || !guests) {
-      return NextResponse.json(
-        { error: 'Missing required booking details' },
-        { status: 400 }
-      );
-    }
-
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-
-    if (checkInDate >= checkOutDate) {
-      return NextResponse.json(
-        { error: 'Check-out must be after check-in' },
-        { status: 400 }
-      );
-    }
-
-    if (checkInDate < new Date()) {
-      return NextResponse.json(
-        { error: 'Check-in date cannot be in the past' },
-        { status: 400 }
-      );
-    }
-
-    const room = await prisma.room.findUnique({
-      where: { id: roomId }
+    
+    const room = await roomService.create({
+      name: body.name,
+      type: String(body.type || '').toUpperCase(),
+      price: Number(body.price),
+      maxGuests: Number(body.maxGuests),
+      description: body.description || '',
+      amenities: body.amenities || [],
+      images: body.images || (body.imageUrl ? [body.imageUrl] : []),
+      status: 'AVAILABLE',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
 
-    if (!room || !room.available) {
-      return NextResponse.json(
-        { error: 'Room not available' },
-        { status: 400 }
-      );
-    }
-
-    if (guests > room.maxGuests) {
-      return NextResponse.json(
-        { error: `Maximum ${room.maxGuests} guests allowed` },
-        { status: 400 }
-      );
-    }
-
-    const nights = Math.ceil(
-      (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const totalPrice = Number(room.price) * nights;
-
-    const conflictingReservations = await prisma.reservation.findMany({
-      where: {
-        roomId,
-        status: { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] },
-        OR: [
-          {
-            checkIn: { lte: checkOutDate },
-            checkOut: { gte: checkInDate }
-          }
-        ]
-      }
-    });
-
-    if (conflictingReservations.length > 0) {
-      return NextResponse.json(
-        { error: 'Room is not available for selected dates' },
-        { status: 400 }
-      );
-    }
-
-    const reservation = await prisma.reservation.create({
-      data: {
-        userId: session.userId,
-        roomId,
-        guestName: `${session.firstName || 'Guest'} ${session.lastName || ''}`.trim(),
-        guestEmail: session.email,
-        guestPhone: '',
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        guests,
-        adults: adults || 2,
-        children: children || 0,
-        totalPrice,
-        specialRequests,
-        status: 'PENDING',
-        paymentStatus: 'PENDING'
-      }
-    });
-
-    await prisma.log.create({
-      data: {
-        userId: session.userId,
-        reservationId: reservation.id,
-        action: 'RESERVATION_CREATED',
-        details: { reservationId: reservation.id, roomId, totalPrice }
-      }
-    });
-
-    return NextResponse.json({
-      reservation: {
-        id: reservation.id,
-        checkIn: reservation.checkIn,
-        checkOut: reservation.checkOut,
-        totalPrice: reservation.totalPrice,
-        status: reservation.status
-      }
-    });
-  } catch (error) {
-    console.error('Create reservation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create reservation' },
+      { message: 'Room created successfully', room: toApiRoom(room) },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('Create room error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create room' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Room ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const room = await roomService.update(id, {
+      ...updates,
+      type: updates.type ? String(updates.type).toUpperCase() : undefined,
+      price: updates.price !== undefined ? Number(updates.price) : undefined,
+      maxGuests: updates.maxGuests !== undefined ? Number(updates.maxGuests) : undefined,
+      updatedAt: new Date().toISOString()
+    });
+
+    return NextResponse.json(
+      { message: 'Room updated successfully', room: toApiRoom(room) }
+    );
+  } catch (error: any) {
+    console.error('Update room error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to update room' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Room ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await roomService.delete(id);
+    
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'Room not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: 'Room deleted successfully' }
+    );
+  } catch (error) {
+    console.error('Delete room error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete room' },
       { status: 500 }
     );
   }

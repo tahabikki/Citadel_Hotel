@@ -44,7 +44,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const { url, filename, type, category, isActive } = req.body;
 
     const media = await prisma.media.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         ...(url && { url }),
         ...(filename !== undefined && { filename }),
@@ -61,7 +61,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.media.delete({ where: { id: req.params.id } });
+    await prisma.media.delete({ where: { id: req.params.id as string } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete media' });

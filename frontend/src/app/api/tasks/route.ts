@@ -1,49 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/auth';
-import type { UserRole } from '@/lib/auth';
+import { taskService } from '@/lib/services/taskService';
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.STAFF]);
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-
-    const where: any = {};
-
+    const type = searchParams.get('type');
+    
+    let tasks = await taskService.getAll();
+    
     if (status) {
-      where.status = status.toUpperCase();
+      tasks = tasks.filter(t => t.status === status);
     }
-
-    const tasks = await prisma.task.findMany({
-      where,
-      include: {
-        reservation: {
-          include: {
-            room: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
-          }
-        },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
+    if (type) {
+      tasks = tasks.filter(t => t.type === type);
+    }
+    
     return NextResponse.json({ tasks });
   } catch (error) {
-    console.error('Get tasks error:', error);
+    console.error('Error fetching tasks:', error);
     return NextResponse.json(
       { error: 'Failed to fetch tasks' },
       { status: 500 }
@@ -51,119 +26,91 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN]);
-
     const body = await request.json();
-    const { taskId, status, result, errorMessage } = body;
-
-    if (!taskId) {
+    
+    if (!body.type || !body.reservationId) {
       return NextResponse.json(
-        { error: 'Missing taskId' },
+        { error: 'Missing required fields: type, reservationId' },
         { status: 400 }
       );
     }
-
-    const updateData: any = {};
-
-    if (status) {
-      updateData.status = status.toUpperCase();
-      
-      if (status === 'COMPLETED') {
-        updateData.completedAt = new Date();
-      }
-    }
-
-    if (result) {
-      updateData.result = result;
-    }
-
-    if (errorMessage) {
-      updateData.errorMessage = errorMessage;
-      updateData.attempts = { increment: 1 };
-    }
-
-    const task = await prisma.task.update({
-      where: { id: taskId },
-      data: updateData,
-      include: {
-        reservation: true
-      }
+    
+    const task = await taskService.create({
+      ...body,
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
     });
 
-    return NextResponse.json({ task });
-  } catch (error) {
-    console.error('Update task error:', error);
     return NextResponse.json(
-      { error: 'Failed to update task' },
+      { message: 'Task created successfully', task },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('Error creating task:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create task' },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    const session = await getSession();
+    const body = await request.json();
+    const { id, ...updates } = body;
     
-    if (!session) {
+    if (!id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Task ID is required' },
+        { status: 400 }
       );
     }
+    
+    const task = await taskService.update(id, updates);
 
-    const body = await request.json();
-    const { reservationId, type, accessLevel } = body;
+    return NextResponse.json(
+      { message: 'Task updated successfully', task }
+    );
+  } catch (error: any) {
+    console.error('Error updating task:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to update task' },
+      { status: 500 }
+    );
+  }
+}
 
-    if (!reservationId || !type) {
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Task ID is required' },
         { status: 400 }
       );
     }
 
-    const reservation = await prisma.reservation.findUnique({
-      where: { id: reservationId },
-      include: { room: true }
-    });
-
-    if (!reservation) {
+    const deleted = await taskService.delete(id);
+    
+    if (!deleted) {
       return NextResponse.json(
-        { error: 'Reservation not found' },
+        { error: 'Task not found' },
         { status: 404 }
       );
     }
 
-    const validFrom = type === 'CREATE_CARD' ? new Date() : new Date();
-    const validUntil = type === 'CREATE_CARD' 
-      ? reservation.checkOut 
-      : new Date();
-
-    const task = await prisma.task.create({
-      data: {
-        reservationId,
-        userId: reservation.userId,
-        type: type.toUpperCase(),
-        status: 'PENDING',
-        roomNumber: reservation.room.roomNumber,
-        accessLevel: accessLevel || 1,
-        validFrom,
-        validUntil
-      }
-    });
-
-    return NextResponse.json({ task });
-  } catch (error) {
-    console.error('Create task error:', error);
     return NextResponse.json(
-      { error: 'Failed to create task' },
+      { message: 'Task deleted successfully' }
+    );
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete task' },
       { status: 500 }
     );
   }
-}
-
-async function getSession() {
-  const { getSession } = await import('@/lib/auth');
-  return getSession();
 }

@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../lib/prisma';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
@@ -16,9 +17,9 @@ interface AuthRequest extends Request {
 
 const authenticate = (req: AuthRequest, res: Response, next: Function) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+  const token = authHeader ? authHeader.replace('Bearer ', '') : req.cookies['auth-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-  const token = authHeader.replace('Bearer ', '');
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string };
     req.user = decoded;
@@ -28,62 +29,105 @@ const authenticate = (req: AuthRequest, res: Response, next: Function) => {
   }
 };
 
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { roomId, checkIn, checkOut, guests, adults, children, specialRequests } = req.body;
+    // Temporary: set dummy user
+    req.user = { userId: 'USR001', email: 'john@example.com', role: 'GUEST' };
+    const { roomId, checkIn, checkOut, guests, adults, children, specialRequests, guestName, guestEmail, guestPhone } = req.body;
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
-    const room = await prisma.room.findUnique({ where: { id: roomId } });
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-
+    // Mock room check and price calculation
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const totalPrice = Number(room.price) * nights;
+    const totalPrice = 150 * nights; // Mock price
 
-    const conflicting = await prisma.reservation.findMany({
-      where: {
-        roomId,
-        status: { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] },
-        OR: [{ checkIn: { lte: checkOutDate }, checkOut: { gte: checkInDate } }]
+    // Skip availability check for mock
+  
+// Migrate reservations from legacy flat file to nested folder structure
+// If old file exists and new one doesn't, copy contents to new path.
+(function migrateReservationsPath() {
+  try {
+    const legacy = path.join(__dirname, '../../data/reservations.json');
+    const target = path.join(__dirname, '../../data/reservations/reservations.json');
+    if (fs.existsSync(legacy) && !fs.existsSync(target)) {
+      const data = fs.readFileSync(legacy, 'utf8');
+      const dir = path.dirname(target);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(target, data);
+      // NOTE: Intentionally not deleting legacy file to avoid data loss without explicit user instruction
+      console.log('Migrated reservations.json to new nested path:', target);
+    }
+  } catch (e) {
+    console.error('Failed to migrate reservations.json:', e);
+  }
+})();
+ 
+  // Save to reservations.json (now inside data/reservations/)
+  const reservationsFile = path.join(__dirname, '../../data/reservations/reservations.json');
+    const reservationsDir = path.dirname(reservationsFile);
+    // Ensure the data directory exists
+    if (!fs.existsSync(reservationsDir)) {
+      fs.mkdirSync(reservationsDir, { recursive: true });
+    }
+    let reservations = [];
+    if (fs.existsSync(reservationsFile)) {
+      const data = fs.readFileSync(reservationsFile, 'utf8');
+      if (data.trim() !== '') {
+        try {
+          reservations = JSON.parse(data);
+        } catch (e) {
+          console.error('Error parsing reservations.json:', e);
+          // If the file is corrupt, start fresh
+          reservations = [];
+        }
       }
-    });
-
-    if (conflicting.length > 0) {
-      return res.status(400).json({ error: 'Room not available for selected dates' });
     }
 
-    const reservation = await prisma.reservation.create({
-      data: {
-        userId: req.user!.userId,
-        roomId,
-        guestName: '',
-        guestEmail: req.user!.email,
-        guestPhone: '',
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        guests,
-        adults: adults || 2,
-        children: children || 0,
-        totalPrice,
-        status: 'PENDING',
-        paymentStatus: 'PENDING',
-        specialRequests
-      }
-    });
+    const reservation = {
+      id: 'RES-' + Date.now(),
+      userId: req.user!.userId,
+      roomId,
+      guestName: guestName || 'Guest',
+      guestEmail: guestEmail || req.user!.email,
+      guestPhone: guestPhone || '',
+      checkIn: checkInDate.toISOString(),
+      checkOut: checkOutDate.toISOString(),
+      guests,
+      adults,
+      children,
+      totalPrice,
+      status: 'CONFIRMED',
+      paymentStatus: 'PENDING',
+      specialRequests,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
-    res.json({ reservation: { id: reservation.id, checkIn: reservation.checkIn, checkOut: reservation.checkOut, totalPrice: reservation.totalPrice, status: reservation.status } });
+    reservations.push(reservation);
+    fs.writeFileSync(reservationsFile, JSON.stringify(reservations, null, 2));
+
+    res.json({ reservation });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create reservation' });
   }
 });
 
-router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const reservations = await prisma.reservation.findMany({
-      where: { userId: req.user!.userId },
-      include: { room: true },
-      orderBy: { createdAt: 'desc' }
-    });
+  // Get all reservations from JSON file
+  const reservationsFile = path.join(__dirname, '../../data/reservations/reservations.json');
+    let reservations = [];
+    if (fs.existsSync(reservationsFile)) {
+      const data = fs.readFileSync(reservationsFile, 'utf8');
+      if (data.trim() !== '') {
+        try {
+          reservations = JSON.parse(data);
+        } catch (e) {
+          console.error('Error parsing reservations.json:', e);
+          reservations = [];
+        }
+      }
+    }
     res.json({ reservations });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch reservations' });
@@ -92,35 +136,9 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
 router.post('/payment', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-      if (!stripe) {
-        return res.status(500).json({ error: 'Payment processing not configured' });
-      }
-      
-      const { reservationId } = req.body;
-      const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } });
-
-      if (!reservation || reservation.userId !== req.user!.userId) {
-        return res.status(404).json({ error: 'Reservation not found' });
-      }
-
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(Number(reservation.totalPrice) * 100),
-        currency: 'eur',
-        metadata: { reservationId: reservation.id }
-      });
-
-      await prisma.payment.create({
-        data: {
-          reservationId: reservation.id,
-          amount: reservation.totalPrice,
-          stripePaymentId: paymentIntent.id,
-          status: 'PENDING'
-        }
-      });
-
-      res.json({ clientSecret: paymentIntent.client_secret });
+      // Mock payment
+      res.json({ clientSecret: 'mock_secret' });
     } catch (error) {
-      console.error('Payment error:', error);
       res.status(500).json({ error: 'Payment failed' });
     }
   });

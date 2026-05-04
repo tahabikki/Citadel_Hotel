@@ -1,8 +1,9 @@
-import { Metadata } from "next";
-import { Navbar } from "../../components/Navbar";
-import { Footer } from "../../components/Footer";
+import type { Metadata } from "next";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import Image from "next/image";
-import { images } from "../../lib/images";
+import { images } from "@/lib/images";
 import Link from "next/link";
 import { Clock, MapPin, Phone, Star } from "lucide-react";
 
@@ -62,56 +63,64 @@ export default function DiningPage() {
           />
           <div className="absolute inset-0 bg-black/50" />
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
-            <p className="text-sm tracking-[0.3em] uppercase mb-4 opacity-90">Dining</p>
-            <h1 className="font-display text-4xl md:text-6xl mb-4">Culinary Excellence</h1>
-            <p className="text-white/80 max-w-xl">
-              Savor exquisite flavors at our award-winning restaurant and elegant bars
-            </p>
+            <ScrollReveal animation="fade-right">
+              <p className="text-sm tracking-[0.3em] uppercase mb-4 opacity-90">Dining</p>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-left" delay={90}>
+              <h1 className="font-display text-4xl md:text-6xl mb-4">Culinary Excellence</h1>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-right" delay={160}>
+              <p className="text-white/80 max-w-xl">
+                Savor exquisite flavors at our award-winning restaurant and elegant bars
+              </p>
+            </ScrollReveal>
           </div>
         </section>
 
         <section className="py-16 bg-[var(--card)]">
           <div className="container-custom">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {diningOptions.map((venue, index) => (
-                <div key={venue.id} className="bg-[var(--background)] rounded-lg overflow-hidden border border-[var(--border-light)] group">
-                  <div className="relative h-56">
-                    <Image
-                      src={images[venue.image]}
-                      alt={venue.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 left-4 bg-[var(--primary)] text-white text-xs px-3 py-1 rounded">
-                      {venue.type}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-display text-xl">{venue.name}</h3>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm">{venue.rating}</span>
+              {diningOptions.map((venue, idx) => (
+                <ScrollReveal key={venue.id} animation={idx % 2 === 0 ? 'fade-right' : 'fade-left'} delay={idx * 90} className="h-full">
+                  <div className="h-full bg-[var(--background)] rounded-lg overflow-hidden border border-[var(--border-light)] group">
+                    <div className="relative h-56">
+                      <Image
+                        src={images[venue.image]}
+                        alt={venue.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-4 left-4 bg-[var(--primary)] text-white text-xs px-3 py-1 rounded">
+                        {venue.type}
                       </div>
                     </div>
-                    <p className="text-[var(--secondary)] text-sm mb-4">{venue.description}</p>
-                    
-                    <div className="flex items-center gap-2 text-sm text-[var(--secondary)] mb-3">
-                      <Clock className="w-4 h-4" />
-                      <span>{venue.hours}</span>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-display text-xl">{venue.name}</h3>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm">{venue.rating}</span>
+                        </div>
+                      </div>
+                      <p className="text-[var(--secondary)] text-sm mb-4">{venue.description}</p>
+                      
+                      <div className="flex items-center gap-2 text-sm text-[var(--secondary)] mb-3">
+                        <Clock className="w-4 h-4" />
+                        <span>{venue.hours}</span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {venue.features.map((feature) => (
+                          <span key={feature} className="text-xs px-2 py-1 bg-[var(--card-hover)] rounded">
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      <button type="button" className="btn-primary w-full">Reserve a Table</button>
                     </div>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {venue.features.map((feature) => (
-                        <span key={feature} className="text-xs px-2 py-1 bg-[var(--card-hover)] rounded">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                    
-                    <button className="btn-primary w-full">Reserve a Table</button>
                   </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -120,20 +129,23 @@ export default function DiningPage() {
         <section className="py-16">
           <div className="container-custom">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div className="relative h-[400px] rounded-lg overflow-hidden">
-                <Image
-                  src={images[15]}
-                  alt="Chef's special"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <p className="text-sm tracking-[0.2em] uppercase text-[var(--primary)] mb-4">Chef's Special</p>
-                <h2 className="font-display text-3xl mb-4">Seasonal Delights</h2>
-                <p className="text-[var(--secondary)] mb-6 leading-relaxed">
-                  Our award-winning chef creates seasonal menus inspired by the finest local ingredients from the Calais region. From fresh seafood to organic produce, every dish tells a story of culinary passion.
-                </p>
+              <ScrollReveal animation="fade-right">
+                <div className="relative h-[400px] rounded-lg overflow-hidden">
+                  <Image
+                    src={images[15]}
+                    alt="Chef's special"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              </ScrollReveal>
+              <ScrollReveal animation="fade-left" delay={120}>
+                <div>
+                  <p className="text-sm tracking-[0.2em] uppercase text-[var(--primary)] mb-4">Chef&apos;s Special</p>
+                  <h2 className="font-display text-3xl mb-4">Seasonal Delights</h2>
+                  <p className="text-[var(--secondary)] mb-6 leading-relaxed">
+                    Our award-winning chef creates seasonal menus inspired by the finest local ingredients from the Calais region. From fresh seafood to organic produce, every dish tells a story of culinary passion.
+                  </p>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center gap-3">
                     <span className="w-2 h-2 bg-[var(--primary)] rounded-full" />
@@ -148,21 +160,26 @@ export default function DiningPage() {
                     <span>Private dining available</span>
                   </li>
                 </ul>
-                <Link href="#" className="btn-primary">View Menu</Link>
-              </div>
+                  <Link href="/contact" className="btn-primary">View Menu</Link>
+                </div>
+              </ScrollReveal>
             </div>
           </div>
         </section>
 
         <section className="py-16 bg-[var(--card)]">
           <div className="container-custom text-center">
-            <h2 className="font-display text-3xl mb-4">Ready to Dine?</h2>
-            <p className="text-[var(--secondary)] mb-8 max-w-lg mx-auto">
-              Reserve your table today and experience the finest dining in Calais.
-            </p>
+            <ScrollReveal animation="fade-right">
+              <h2 className="font-display text-3xl mb-4">Ready to Dine?</h2>
+            </ScrollReveal>
+            <ScrollReveal animation="fade-left" delay={120}>
+              <p className="text-[var(--secondary)] mb-8 max-w-lg mx-auto">
+                Reserve your table today and experience the finest dining in Calais.
+              </p>
+            </ScrollReveal>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="btn-primary">Reserve Online</button>
-              <button className="btn-outline">Call +33 3 21 97 00 00</button>
+              <button type="button" className="btn-primary">Reserve Online</button>
+              <button type="button" className="btn-outline">Call +33 3 21 97 00 00</button>
             </div>
           </div>
         </section>

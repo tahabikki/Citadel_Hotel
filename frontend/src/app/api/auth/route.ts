@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createToken, verifyPassword, hashPassword } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
+import { buildAuthCookieOptions, getCurrentUser, loginUser, registerUser } from '@/lib/services/authApiService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,50 +15,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const existingUser = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (existingUser) {
-        return NextResponse.json(
-          { error: 'Email already registered' },
-          { status: 400 }
-        );
-      }
-
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashPassword(password),
-          firstName,
-          lastName,
-          phone
-        }
-      });
-
-      const token = await createToken({
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      });
+      const session = await registerUser({ email, password, firstName, lastName, phone });
 
       const response = NextResponse.json({
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        },
-        token
+        user: session.user,
+        token: session.token
       });
 
-      response.cookies.set('auth-token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
-      });
+      response.cookies.set('auth-token', session.token, buildAuthCookieOptions());
 
       return response;
     }
@@ -71,40 +35,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const user = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (!user || !verifyPassword(password, user.password)) {
-        return NextResponse.json(
-          { error: 'Invalid credentials' },
-          { status: 401 }
-        );
-      }
-
-      const token = await createToken({
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      });
+      const session = await loginUser({ email, password });
 
       const response = NextResponse.json({
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        },
-        token
+        user: session.user,
+        token: session.token
       });
 
-      response.cookies.set('auth-token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7
-      });
+      response.cookies.set('auth-token', session.token, buildAuthCookieOptions());
 
       return response;
     }
@@ -130,24 +68,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const { getSession } = await import('@/lib/auth');
     const session = await getSession();
 
     if (!session) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        role: true
-      }
-    });
+    const user = await getCurrentUser(session);
 
     return NextResponse.json({ user });
   } catch (error) {

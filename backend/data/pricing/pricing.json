@@ -1,0 +1,24 @@
+[
+  {
+    "id": "1",
+    "name": "Summer Season",
+    "startDate": "2026-06-01T00:00:00.000Z",
+    "endDate": "2026-08-31T23:59:59.999Z",
+    "multiplier": 1.5,
+    "roomType": null,
+    "isActive": true,
+    "createdAt": "2026-04-29T00:00:00.000Z",
+    "updatedAt": "2026-04-29T00:00:00.000Z"
+  },
+  {
+    "id": "2",
+    "name": "Winter Discount",
+    "startDate": "2026-11-01T00:00:00.000Z",
+    "endDate": "2026-02-28T23:59:59.999Z",
+    "multiplier": 0.8,
+    "roomType": null,
+    "isActive": true,
+    "createdAt": "2026-04-29T00:00:00.000Z",
+    "updatedAt": "2026-04-29T00:00:00.000Z"
+  }
+]

@@ -16,7 +16,7 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     if (lowStock === 'true') {
-      const filtered = items.filter(item => item.quantity < item.minStock);
+      const filtered = items.filter((item: any) => item.quantity < item.minStock);
       return res.json({ items: filtered });
     }
 
@@ -29,9 +29,9 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/stats', async (req: Request, res: Response) => {
   try {
     const items = await prisma.inventoryItem.findMany({ where: { isActive: true } });
-    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-    const lowStock = items.filter(item => item.quantity < item.minStock).length;
-    const minibarItems = items.filter(item => item.category === 'MINIBAR').length;
+    const totalItems = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+    const lowStock = items.filter((item: any) => item.quantity < item.minStock).length;
+    const minibarItems = items.filter((item: any) => item.category === 'MINIBAR').length;
 
     res.json({ totalItems, lowStock, minibarItems });
   } catch (error) {
@@ -63,7 +63,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const { name, category, quantity, minStock, unitPrice, isActive } = req.body;
 
     const item = await prisma.inventoryItem.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         ...(name && { name }),
         ...(category && { category: category.toUpperCase() }),
@@ -81,7 +81,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.inventoryItem.delete({ where: { id: req.params.id } });
+    await prisma.inventoryItem.delete({ where: { id: req.params.id as string } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete inventory item' });

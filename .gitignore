@@ -48,5 +48,9 @@ dist/
 *.db
 *.sqlite
 
+# Dev uploads (never commit binary artifacts)
+backend/uploads/**
+!backend/uploads/.gitkeep
+
 # Media (optional - uncomment if you want to track images)
 # frontend/public/uploads/media/hotel/*

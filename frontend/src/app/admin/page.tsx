@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 import { 
   LayoutDashboard, 
@@ -40,7 +40,8 @@ import {
   Banknote,
   ImageIcon,
   Upload,
-  X
+  X,
+  Menu
 } from 'lucide-react';
 
 const languages = [
@@ -49,6 +50,47 @@ const languages = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
   { code: 'es', name: 'Español', flag: '🇪🇸' },
 ];
+
+interface Reservation {
+  id: string;
+  guestName: string;
+  guestEmail: string;
+  roomNumber: string;
+  checkIn: string;
+  checkOut: string;
+  status: string;
+  totalPrice: number;
+}
+
+interface Task {
+  id: string;
+  type: string;
+  status: string;
+  roomNumber: string;
+  reservation: {
+    user: { firstName: string; lastName: string };
+  };
+  createdAt: string;
+}
+
+interface Stats {
+  totalRooms: number;
+  availableRooms: number;
+  todayCheckIns: number;
+  todayCheckOuts: number;
+  totalReservations: number;
+  pendingPayments: number;
+}
+
+type AdminRoom = {
+  id: string;
+  roomNumber: string;
+  name: string;
+  type: string;
+  price: number;
+  status: string;
+  imageUrl?: string;
+};
 
 interface Reservation {
   id: string;
@@ -111,6 +153,7 @@ export default function AdminDashboard() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [adminLang, setAdminLang] = useState('en');
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     totalRooms: 15,
     availableRooms: 8,
@@ -121,14 +164,14 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(false);
 
-  const [adminRooms, setAdminRooms] = useState([
-    { id: '101', name: 'Single Room', type: 'SINGLE', price: 59, status: 'Available', imageUrl: '/uploads/media/hotel/image_001.jpg' },
-    { id: '102', name: 'Double Room', type: 'DOUBLE', price: 79, status: 'Occupied', imageUrl: '/uploads/media/hotel/image_005.jpg' },
-    { id: '103', name: 'Twin Room', type: 'TWIN', price: 89, status: 'Available', imageUrl: '/uploads/media/hotel/image_006.jpg' },
-    { id: '104', name: 'Family Room', type: 'FAMILY', price: 150, status: 'Available', imageUrl: '/uploads/media/hotel/image_007.jpg' },
-    { id: '105', name: 'Deluxe Suite', type: 'SUITE', price: 200, status: 'Available', imageUrl: '/uploads/media/hotel/image_008.jpg' },
-    { id: '106', name: 'Double Room', type: 'DOUBLE', price: 89, status: 'Available', imageUrl: '/uploads/media/hotel/image_011.jpg' },
-    { id: '107', name: 'Twin Room', type: 'TWIN', price: 79, status: 'Available', imageUrl: '/uploads/media/hotel/image_012.jpg' },
+  const [adminRooms, setAdminRooms] = useState<AdminRoom[]>([
+    { id: '101', roomNumber: '101', name: 'Single Room', type: 'SINGLE', price: 59, status: 'Available', imageUrl: '/uploads/media/hotel/image_001.jpg' },
+    { id: '102', roomNumber: '102', name: 'Double Room', type: 'DOUBLE', price: 79, status: 'Occupied', imageUrl: '/uploads/media/hotel/image_005.jpg' },
+    { id: '103', roomNumber: '103', name: 'Twin Room', type: 'TWIN', price: 89, status: 'Available', imageUrl: '/uploads/media/hotel/image_006.jpg' },
+    { id: '104', roomNumber: '104', name: 'Family Room', type: 'FAMILY', price: 150, status: 'Available', imageUrl: '/uploads/media/hotel/image_007.jpg' },
+    { id: '105', roomNumber: '105', name: 'Deluxe Suite', type: 'SUITE', price: 200, status: 'Available', imageUrl: '/uploads/media/hotel/image_008.jpg' },
+    { id: '106', roomNumber: '106', name: 'Double Room', type: 'DOUBLE', price: 89, status: 'Available', imageUrl: '/uploads/media/hotel/image_011.jpg' },
+    { id: '107', roomNumber: '107', name: 'Twin Room', type: 'TWIN', price: 79, status: 'Available', imageUrl: '/uploads/media/hotel/image_012.jpg' },
   ]);
 
   const [staffList, setStaffList] = useState([
@@ -317,7 +360,7 @@ export default function AdminDashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemType, setItemType] = useState('');
 
-  const addRoom = (room: { id: string; name: string; type: string; price: number; status: string }) => {
+  const addRoom = (room: AdminRoom) => {
     setAdminRooms([...adminRooms, room]);
     setShowAddRoom(false);
   };
@@ -514,8 +557,19 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex">
-      <aside className="w-64 bg-[#0d0d0d] border-r border-white/10 fixed h-full flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-[var(--background)]">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Responsive */}
+      <aside className={`fixed top-0 left-0 h-screen w-64 bg-[#0d0d0d] border-r border-white/10 flex flex-col overflow-hidden z-50 transform transition-transform duration-300 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
         <div className="p-4 border-b border-white/10 flex flex-col items-center">
           <div className="relative w-16 h-16 mb-2 bg-white rounded-full p-2">
             <Image
@@ -534,7 +588,10 @@ export default function AdminDashboard() {
             {menuItems.map((item) => (
               <li key={item.id}>
                 <button
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setSidebarOpen(false);
+                  }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm transition-colors ${
                     activeTab === item.id
                       ? 'bg-[var(--primary)] text-white'
@@ -557,26 +614,34 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 ml-64 bg-white min-h-screen">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-              <ActiveIcon className="w-5 h-5 text-[#867050]" />
-              <span className="font-medium text-gray-700">{activeMenuItem?.label}</span>
+      <main className="lg:ml-64 bg-white min-h-screen">
+        <header className="h-16 md:h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            >
+              <Menu className="w-6 h-6 text-gray-600" />
+            </button>
+
+            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+              <div className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-2 bg-gray-100 rounded-lg flex-shrink-0">
+                <ActiveIcon className="w-5 h-5 text-[#867050]" />
+                <span className="font-medium text-gray-700 hidden md:inline">{activeMenuItem?.label}</span>
+              </div>
+              <div className="relative flex-1 max-w-xs md:max-w-md">
+                <Search className="w-4 md:w-5 h-4 md:h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#867050]/30"
+                />
+              </div>
             </div>
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#867050]/30"
-              />
-            </div>
-          </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
             <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell className="w-5 h-5 text-gray-600" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -584,10 +649,10 @@ export default function AdminDashboard() {
             <div className="relative">
               <button 
                 onClick={() => setIsLangOpen(!isLangOpen)}
-                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-2 md:px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Globe className="w-5 h-5 text-gray-600" />
-                <span className="text-sm">{languages.find(l => l.code === adminLang)?.flag}</span>
+                <Globe className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                <span className="text-sm hidden sm:inline">{languages.find(l => l.code === adminLang)?.flag}</span>
               </button>
               {isLangOpen && (
                 <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
@@ -609,11 +674,11 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#867050] rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-gray-200">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-[#867050] rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                 A
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <p className="text-sm font-medium text-gray-700">Admin</p>
                 <p className="text-xs text-gray-500">admin@citadelhotel.fr</p>
               </div>
@@ -621,7 +686,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
               <div>
@@ -760,7 +825,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-[var(--card)] rounded-[var(--radius-lg)] border border-[var(--border-light)] overflow-hidden">
+              <div className="bg-[var(--card)] rounded-[var(--radius-lg)] border border-[var(--border-light)] overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-[var(--background)]">
                     <tr>
@@ -987,6 +1052,7 @@ export default function AdminDashboard() {
                       const selectedImage = (form.elements.namedItem('roomImage') as HTMLSelectElement).value;
                       addRoom({
                         id: (form.elements.namedItem('roomId') as HTMLInputElement).value,
+                        roomNumber: (form.elements.namedItem('roomId') as HTMLInputElement).value,
                         name: (form.elements.namedItem('roomType') as HTMLSelectElement).value + ' Room',
                         type: (form.elements.namedItem('roomType') as HTMLSelectElement).value,
                         price: parseInt((form.elements.namedItem('roomPrice') as HTMLInputElement).value),

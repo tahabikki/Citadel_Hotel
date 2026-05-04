@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Calendar, Users, ChevronDown, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { reservationService } from '@/services/reservationService';
 
 function formatDate(date: Date) {
   const day = date.getDate();
@@ -49,7 +49,7 @@ export function BookingSection() {
       const roomMatch = room.match(/(\d+)/);
       const roomCount = roomMatch ? parseInt(roomMatch[1]) : 1;
 
-      const defaultRoomId = 'double';
+      const defaultRoomId = '2';
       
       const reservationData = {
         roomId: defaultRoomId,
@@ -61,16 +61,12 @@ export function BookingSection() {
         specialRequests: specialCode || undefined
       };
 
-      const response = await api.reservations.create(reservationData);
-      
-      if (response.reservation) {
-        setSuccess('Reservation created successfully!');
-        setTimeout(() => {
-          router.push(`/rooms?booked=${response.reservation.id}`);
-        }, 1500);
-      } else {
-        throw new Error('Failed to create reservation');
-      }
+      // Redirect to checkout instead of direct creation
+      const draftId = 'DRAFT-' + Date.now();
+      setSuccess('Redirecting to checkout...');
+      setTimeout(() => {
+        router.push(`/checkout?draftId=${draftId}&checkIn=${checkInDate}&checkOut=${checkOutDate}&guests=${guestsCount}&roomId=${defaultRoomId}`);
+      }, 1500);
     } catch (err: any) {
       setError(err.message || 'An error occurred during booking');
     } finally {

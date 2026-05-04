@@ -26,7 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
         select: { roomId: true }
       });
 
-      where.id = { notIn: conflicting.map(r => r.roomId) };
+      where.id = { notIn: conflicting.map((r: any) => r.roomId) };
     }
 
     const rooms = await prisma.room.findMany({ where, orderBy: { price: 'asc' } });

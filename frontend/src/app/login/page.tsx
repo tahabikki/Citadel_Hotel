@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Building2, Mail, Lock, ArrowRight } from 'lucide-react';
+import { ScrollReveal } from '@/components/ScrollReveal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,7 +56,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] hero-gradient p-4">
       <div className="w-full max-w-md">
-        <div className="bg-[var(--card)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] border border-[var(--border-light)] p-8">
+        <ScrollReveal animation="fade-right">
+          <div className="bg-[var(--card)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] border border-[var(--border-light)] p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
             <Building2 className="w-10 h-10 text-[var(--primary)]" />
             <div>
@@ -146,11 +149,14 @@ export default function LoginPage() {
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </p>
-        </div>
+          </div>
+        </ScrollReveal>
 
-        <p className="text-center text-sm text-[var(--secondary)] mt-6">
-          <a href="/" className="hover:text-[var(--foreground)]">← Back to hotel website</a>
-        </p>
+        <ScrollReveal animation="fade-left" delay={120}>
+          <p className="text-center text-sm text-[var(--secondary)] mt-6">
+            <Link href="/" className="hover:text-[var(--foreground)]">← Back to hotel website</Link>
+          </p>
+        </ScrollReveal>
       </div>
     </div>
   );

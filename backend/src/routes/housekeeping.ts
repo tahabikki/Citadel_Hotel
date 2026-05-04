@@ -60,7 +60,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const { status, priority, assignedToId, notes } = req.body;
 
     const task = await prisma.housekeepingTask.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         ...(status && { status: status.toUpperCase() }),
         ...(priority && { priority: priority.toUpperCase() }),
@@ -77,7 +77,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.housekeepingTask.delete({ where: { id: req.params.id } });
+    await prisma.housekeepingTask.delete({ where: { id: req.params.id as string } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete housekeeping task' });
