@@ -1,7 +1,13 @@
 {
-  "name": "citadel-hotel",
-  "version": "0.1.0",
+  "name": "citadel-hotel-frontend",
+  "version": "1.0.0",
   "private": true,
+  "description": "Citadel Hotel PMS - Next.js Frontend",
+  "author": "Taha Bikki",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",

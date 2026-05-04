@@ -1,8 +1,13 @@
 {
   "name": "citadel-hotel-backend",
   "version": "1.0.0",
-  "description": "Citadel Hotel PMS Backend API",
+  "description": "Citadel Hotel PMS Backend API - Express + TypeScript",
   "main": "dist/index.js",
+  "author": "Taha Bikki",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",

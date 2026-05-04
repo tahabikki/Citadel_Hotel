@@ -2,13 +2,17 @@
   "name": "citadel-hotel",
   "private": true,
   "version": "1.0.0",
-  "description": "Citadel Hotel PMS - Full Stack",
+  "description": "Citadel Hotel PMS - Full Stack (Monorepo)",
+  "author": "Taha Bikki",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
-    "postinstall": "npm install --workspaces --include=dev && cd frontend && npm install --legacy-peer-deps && cd ../backend && npm install",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build": "npm ci && cd frontend && npm ci && npm run build && cd ../backend && npm ci && npm run build",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
     "start": "npm run start:backend",
