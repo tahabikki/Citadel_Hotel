@@ -3,7 +3,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { FloatingWidgets } from "@/components/FloatingWidgets";
 import { ScrollProgress } from "@/components/ScrollProgress";
-import "./(public)/globals.css";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Citadel Hôtel | Luxury Hotel in Calais, France",
