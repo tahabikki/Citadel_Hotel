@@ -9,18 +9,26 @@ export interface CrudService<T extends { id: string | number }> {
   search(filter: Partial<T>): Promise<T[]>;
 }
 
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.');
+  }
+  return supabaseAdmin;
+}
+
 export function createPrismaCrudService<T extends { id: string | number }>(
   tableName: string
 ): CrudService<T> {
+  const admin = getSupabaseAdmin();
   return {
     async getAll() {
-      const { data, error } = await supabaseAdmin.from(tableName).select('*');
+      const { data, error } = await admin.from(tableName).select('*');
       if (error) throw error;
       return (data || []) as T[];
     },
 
     async getById(id) {
-      const { data: record, error } = await supabaseAdmin
+      const { data: record, error } = await admin
         .from(tableName)
         .select('*')
         .eq('id', String(id))
