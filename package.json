@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-lint --no-telemetry",
+    "build": "next build --no-lint",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
