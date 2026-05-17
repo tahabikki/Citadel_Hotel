@@ -75,7 +75,7 @@ function cleanUndefined(data: Record<string, unknown>) {
 
 export const reservationService = {
   async getAll(): Promise<Reservation[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getAdmin()
       .from('Reservation')
       .select('*')
       .order('createdAt', { ascending: false });
@@ -84,7 +84,7 @@ export const reservationService = {
   },
 
   async getById(id: string | number): Promise<Reservation | undefined> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getAdmin()
       .from('Reservation')
       .select('*')
       .eq('id', String(id))
@@ -95,7 +95,7 @@ export const reservationService = {
 
   async create(item: Omit<Reservation, 'id'>): Promise<Reservation> {
     const data = cleanUndefined(toReservationData(item));
-    const { data: reservation, error } = await supabaseAdmin
+    const { data: reservation, error } = await getAdmin()
       .from('Reservation')
       .insert({
         ...data,
@@ -119,7 +119,7 @@ export const reservationService = {
 
   async update(id: string | number, updates: Partial<Reservation>): Promise<Reservation> {
     const data = cleanUndefined(toReservationData(updates));
-    const { data: reservation, error } = await supabaseAdmin
+    const { data: reservation, error } = await getAdmin()
       .from('Reservation')
       .update(data)
       .eq('id', String(id))
