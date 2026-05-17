@@ -10,24 +10,25 @@ export interface CrudService<T extends { id: string | number }> {
 }
 
 function getSupabaseAdmin() {
-  if (!admin) {
+  if (!supabaseAdmin) {
     throw new Error('Supabase admin not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.');
   }
-  return admin;
+  return supabaseAdmin;
 }
 
 export function createPrismaCrudService<T extends { id: string | number }>(
   tableName: string
 ): CrudService<T> {
-  const admin = getSupabaseAdmin();
   return {
     async getAll() {
+      const admin = getSupabaseAdmin();
       const { data, error } = await admin.from(tableName).select('*');
       if (error) throw error;
       return (data || []) as T[];
     },
 
     async getById(id) {
+      const admin = getSupabaseAdmin();
       const { data: record, error } = await admin
         .from(tableName)
         .select('*')
@@ -38,6 +39,7 @@ export function createPrismaCrudService<T extends { id: string | number }>(
     },
 
     async create(item) {
+      const admin = getSupabaseAdmin();
       const { data, error } = await admin
         .from(tableName)
         .insert(item as any)
@@ -48,6 +50,7 @@ export function createPrismaCrudService<T extends { id: string | number }>(
     },
 
     async update(id, updates) {
+      const admin = getSupabaseAdmin();
       const { data, error } = await admin
         .from(tableName)
         .update(updates as any)
@@ -59,12 +62,14 @@ export function createPrismaCrudService<T extends { id: string | number }>(
     },
 
     async delete(id) {
+      const admin = getSupabaseAdmin();
       const { error } = await admin.from(tableName).delete().eq('id', String(id));
       if (error) throw error;
       return true;
     },
 
     async search(filter) {
+      const admin = getSupabaseAdmin();
       let query = admin.from(tableName).select('*');
       Object.entries(filter).forEach(([key, value]) => {
         query = query.eq(key, value as any);
