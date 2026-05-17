@@ -1,4 +1,4 @@
-import { admin } from '@/lib/supabase-admin';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export interface CrudService<T extends { id: string | number }> {
   getAll(): Promise<T[]>;
