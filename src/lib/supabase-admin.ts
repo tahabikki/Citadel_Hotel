@@ -10,4 +10,8 @@ export const supabaseAdmin = supabaseUrl && supabaseServiceKey
         autoRefreshToken: false,
       },
     })
-  : null;
+  : (process.env.NODE_ENV === 'production' ? null : null);
+
+export function isSupabaseConfigured(): boolean {
+  return !!(supabaseUrl && supabaseServiceKey);
+}

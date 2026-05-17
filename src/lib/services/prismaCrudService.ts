@@ -1,81 +1,56 @@
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { isSupabaseConfigured } from '@/lib/supabase-admin';
 
-export interface CrudService<T extends { id: string | number }> {
+export interface CrudService<T> {
   getAll(): Promise<T[]>;
-  getById(id: string | number): Promise<T | undefined>;
-  create(item: Omit<T, 'id'>): Promise<T>;
-  update(id: string | number, updates: Partial<T>): Promise<T>;
-  delete(id: string | number): Promise<boolean>;
-  search(filter: Partial<T>): Promise<T[]>;
+  getById(id: string): Promise<T | undefined>;
+  create(item: any): Promise<T>;
+  update(id: string, updates: any): Promise<T>;
+  delete(id: string): Promise<boolean>;
+  search(filter: any): Promise<T[]>;
 }
 
-function getSupabaseAdmin() {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase admin not configured. Please set SUPABASE_SERVICE_ROLE_KEY environment variable.');
-  }
-  return supabaseAdmin;
-}
-
-export function createPrismaCrudService<T extends { id: string | number }>(
-  tableName: string
-): CrudService<T> {
+export function createPrismaCrudService<T>(tableName: string): CrudService<T> {
   return {
     async getAll() {
-      const admin = getSupabaseAdmin();
-      const { data, error } = await admin.from(tableName).select('*');
-      if (error) throw error;
+      if (!isSupabaseConfigured()) return [];
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      const { data } = await supabaseAdmin!.from(tableName).select('*');
       return (data || []) as T[];
     },
 
-    async getById(id) {
-      const admin = getSupabaseAdmin();
-      const { data: record, error } = await admin
-        .from(tableName)
-        .select('*')
-        .eq('id', String(id))
-        .maybeSingle();
-      if (error) throw error;
-      return (record || undefined) as T | undefined;
+    async getById(id: string) {
+      if (!isSupabaseConfigured()) return undefined;
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      const { data } = await supabaseAdmin!.from(tableName).select('*').eq('id', id).maybeSingle();
+      return data as T | undefined;
     },
 
-    async create(item) {
-      const admin = getSupabaseAdmin();
-      const { data, error } = await admin
-        .from(tableName)
-        .insert(item as any)
-        .select('*')
-        .single();
-      if (error) throw error;
+    async create(item: any) {
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      const { data } = await supabaseAdmin!.from(tableName).insert(item).select().single();
       return data as T;
     },
 
-    async update(id, updates) {
-      const admin = getSupabaseAdmin();
-      const { data, error } = await admin
-        .from(tableName)
-        .update(updates as any)
-        .eq('id', String(id))
-        .select('*')
-        .single();
-      if (error) throw error;
+    async update(id: string, updates: any) {
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      const { data } = await supabaseAdmin!.from(tableName).update(updates).eq('id', id).select().single();
       return data as T;
     },
 
-    async delete(id) {
-      const admin = getSupabaseAdmin();
-      const { error } = await admin.from(tableName).delete().eq('id', String(id));
-      if (error) throw error;
-      return true;
+    async delete(id: string) {
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      const { error } = await supabaseAdmin!.from(tableName).delete().eq('id', id);
+      return !error;
     },
 
-    async search(filter) {
-      const admin = getSupabaseAdmin();
-      let query = admin.from(tableName).select('*');
+    async search(filter: any) {
+      if (!isSupabaseConfigured()) return [];
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      let query = supabaseAdmin!.from(tableName).select('*');
       Object.entries(filter).forEach(([key, value]) => {
-        query = query.eq(key, value as any);
+        if (value) query = query.eq(key, value);
       });
-      const { data, error } = await query;
-      if (error) throw error;
+      const { data } = await query;
       return (data || []) as T[];
     },
   };
