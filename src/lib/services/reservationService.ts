@@ -1,5 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+function getAdmin() {
+  if (!supabaseAdmin) throw new Error('Supabase not configured');
+  return supabaseAdmin;
+}
+
 export interface Reservation {
   id: string;
   userId?: string;
@@ -125,13 +130,13 @@ export const reservationService = {
   },
 
   async delete(id: string | number): Promise<boolean> {
-    const { error } = await supabaseAdmin.from('Reservation').delete().eq('id', String(id));
+    const { error } = await getAdmin().from('Reservation').delete().eq('id', String(id));
     if (error) throw error;
     return true;
   },
 
   async search(filter: Partial<Reservation>): Promise<Reservation[]> {
-    let query = supabaseAdmin.from('Reservation').select('*');
+    let query = getAdmin().from('Reservation').select('*');
     Object.entries(filter).forEach(([key, value]) => {
       query = query.eq(key, value as any);
     });
