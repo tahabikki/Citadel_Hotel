@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-lint",
+    "build": "next build --no-lint --no-telemetry",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
@@ -28,7 +28,7 @@
     "dotenv": "^16.4.5",
     "jose": "^5.9.6",
     "lucide-react": "^0.468.0",
-    "next": "15.3.2",
+    "next": "15.3.4",
     "pg": "^8.20.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
